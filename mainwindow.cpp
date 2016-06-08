@@ -34,6 +34,10 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    this->setWindowTitle("小安宝设备控制");
+    this->setMaximumSize(860,520);
+    this->setMinimumSize(860,520);
+
     ui->lineEdit_Server->setText(gDefaultServer);
     ui->lineEdit_Mysql->setText(gDefaultMysql);
 
