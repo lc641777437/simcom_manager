@@ -9,6 +9,7 @@
 #include <QRegExp>
 #include <QInputDialog>
 #include <QMessageBox>
+#include <QFileDialog>
 
 #define STR_UPDATA_IMEI "Updata the specify imei data"
 #define STR_GET_LOG     "Get log"
@@ -51,6 +52,44 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::openFile()
+{
+    QString path = QFileDialog::getOpenFileName(this, tr("小安宝设备控制"), ".", tr("Text Files(*.txt)"));
+    if(!path.isEmpty())
+    {
+        QFile file(path);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        {
+            QMessageBox::warning(this, tr("小安宝设备控制"), tr("Cannot open file:\n%1").arg(path));
+            return;
+        }
+        QTextStream stream(&file);
+        QString line;
+        ui->tableWidget->setRowCount(0);//clear the table
+        ui->label_InProcess_GetImeiList->setText("Geting");
+        while(!stream.atEnd())
+        {
+            line = stream.readLine(); // 一行一行读取，不包括“/n”的一行文本
+            //qDebug()<< line.toUtf8();
+            int rowNum = ui->tableWidget->rowCount();
+            ui->tableWidget->setRowCount(rowNum+1);
+
+            ui->tableWidget->setItem(rowNum, 0, new QTableWidgetItem(line));
+            ui->tableWidget->setItem(rowNum, 1, new QTableWidgetItem("Details"));
+            ui->tableWidget->item(rowNum, 0)->setForeground(Qt::blue);
+            ui->tableWidget->item(rowNum, 1)->setForeground(Qt::blue);
+        }
+        ui->tableWidget->resizeColumnsToContents();
+        ui->label_InProcess_GetImeiList->setText("");
+
+        file.close();
+    }
+    else
+    {
+        QMessageBox::warning(this, tr("小安宝设备控制"), tr("You did not select any file."));
+    }
+}
+
 void MainWindow::findInTableWidget(QString string)
 {
     qDebug() << "findInTableWidget:" << string;
@@ -91,6 +130,7 @@ void MainWindow::uiShowConnectionStatus(bool connected)
     ui->pushButton_Disconnect->setEnabled(connected);
     ui->pushButton_Login->setEnabled(connected);
     ui->pushButton_GetImeiList->setEnabled(false);
+    ui->pushButton_Get_Local_imeiList->setEnabled(false);
     ui->pushButton_UpdataImeiData->setEnabled(false);
     ui->tableWidget->setEnabled(connected);
 
@@ -174,9 +214,17 @@ void MainWindow::on_pushButton_Login_clicked()
     QByteArray array_header = QByteArray::fromHex("aa6601110000"); //set seq at 0xff for updata imei data loop
     tcpSocket->write(array_header);
 }
+void MainWindow::on_pushButton_Get_Local_imeiList_clicked()
+{
+    ui->pushButton_GetImeiList->setEnabled(false);
+    qDebug()<<"get local imei list";
+    openFile();
+    return;
+}
 
 void MainWindow::on_pushButton_GetImeiList_clicked()
 {
+    ui->pushButton_Get_Local_imeiList->setEnabled(false);
     sql_query = QSqlQuery(data_base);
     sql_query.prepare(QString("select imei from object"));
     if(!sql_query.exec())
@@ -253,6 +301,7 @@ int MainWindow::manager_login(const void *msg)
     ui->pushButton_Login->setEnabled(false);
     ui->pushButton_GetImeiList->setEnabled(true);
     ui->pushButton_UpdataImeiData->setEnabled(true);
+    ui->pushButton_Get_Local_imeiList->setEnabled(true);
     return 0;
 }
 

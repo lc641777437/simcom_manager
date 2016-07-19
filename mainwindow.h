@@ -35,6 +35,7 @@ private slots:
     void on_pushButton_Disconnect_clicked();
     void on_pushButton_Login_clicked();
     void on_pushButton_GetImeiList_clicked();
+    void on_pushButton_Get_Local_imeiList_clicked();
     void on_pushButton_UpdataImeiData_clicked();
     void on_tableWidget_cellDoubleClicked(int row, int column);
 
@@ -47,12 +48,16 @@ private slots:
     void findInTableWidget(QString string);
     void UpdataImeiDataWithRow(int row);
 
+    void openFile();
+
 private:
     Ui::MainWindow *ui;
     QTcpSocket *tcpSocket;
     QSqlDatabase data_base;
     QSqlQuery sql_query;
     QMenu *pTableMenu;
+    QAction *openAction;
+
 
     void keyPressEvent(QKeyEvent *event);
 
