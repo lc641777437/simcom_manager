@@ -35,6 +35,9 @@
     <property name="editTriggers">
      <set>QAbstractItemView::NoEditTriggers</set>
     </property>
+    <property name="columnCount">
+     <number>10</number>
+    </property>
     <attribute name="horizontalHeaderDefaultSectionSize">
      <number>100</number>
     </attribute>
@@ -83,6 +86,11 @@
       <string>course</string>
      </property>
     </column>
+    <column>
+     <property name="text">
+      <string>voltage</string>
+     </property>
+    </column>
    </widget>
    <widget class="QPushButton" name="pushButton_Connect">
     <property name="geometry">
@@ -101,7 +109,7 @@
     <property name="geometry">
      <rect>
       <x>100</x>
-      <y>10</y>
+      <y>20</y>
       <width>171</width>
       <height>20</height>
      </rect>
@@ -132,19 +140,6 @@
      <bool>false</bool>
     </property>
    </widget>
-   <widget class="QLineEdit" name="lineEdit_Mysql">
-    <property name="geometry">
-     <rect>
-      <x>100</x>
-      <y>30</y>
-      <width>171</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>120.25.157.233:3306</string>
-    </property>
-   </widget>
    <widget class="QPushButton" name="pushButton_UpdataImeiData">
     <property name="enabled">
      <bool>false</bool>
@@ -165,7 +160,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>10</y>
+      <y>20</y>
       <width>101</width>
       <height>16</height>
      </rect>
@@ -174,20 +169,7 @@
      <string>Server(ip:port)</string>
     </property>
    </widget>
-   <widget class="QLabel" name="label_2">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>30</y>
-      <width>101</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Mysql(ip:port)</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="pushButton_GetImeiList">
+   <widget class="QPushButton" name="pushButton_GetImeiData">
     <property name="enabled">
      <bool>false</bool>
     </property>
@@ -200,7 +182,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Get imei list</string>
+     <string>Get imei Data</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_InProcess_GetImeiList">
@@ -232,29 +214,7 @@
      <string/>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_Login">
-    <property name="enabled">
-     <bool>false</bool>
-    </property>
-    <property name="geometry">
-     <rect>
-      <x>440</x>
-      <y>20</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Login</string>
-    </property>
-    <property name="autoDefault">
-     <bool>false</bool>
-    </property>
-    <property name="default">
-     <bool>false</bool>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="pushButton_Get_Local_imeiList">
+   <widget class="QPushButton" name="pushButton_Get_Local_imeiData">
     <property name="enabled">
      <bool>false</bool>
     </property>

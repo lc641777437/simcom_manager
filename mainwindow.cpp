@@ -23,11 +23,12 @@
 #define STR_CMD_AT      "cmd AT"
 
 
+QString gDefaultServer = QString("121.42.38.93:9898");//调试服务器
+//QString gDefaultServer = QString("120.25.157.233:9898");//正式服务器
 
-//QString gDefaultServer = QString("121.42.38.93:9898");//调试服务器
-QString gDefaultServer = QString("120.25.157.233:9898");//正式服务器
-QString gDefaultMysql = QString("120.25.157.233:3306");
 QString gCurrentImeiString;
+
+EventDialog *eventdialog = NULL;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -40,11 +41,17 @@ MainWindow::MainWindow(QWidget *parent) :
     this->setMinimumSize(860,520);
 
     ui->lineEdit_Server->setText(gDefaultServer);
-    ui->lineEdit_Mysql->setText(gDefaultMysql);
 
     connect(ui->tableWidget->horizontalHeader(), SIGNAL(sectionClicked(int)), this, SLOT(slotHeaderClicked(int)));
 
-    data_base = QSqlDatabase::addDatabase("QMYSQL"); //add mysql driver
+    tcpSocket = new QTcpSocket(this);
+    connect(tcpSocket,SIGNAL(connected()),this,SLOT(slotConnected()));
+    connect(tcpSocket,SIGNAL(disconnected()),this,SLOT(slotDisconnected()));
+    connect(tcpSocket,SIGNAL(readyRead()),this,SLOT(slotDataReceived()));
+
+    eventdialog = new EventDialog(this);
+    connect(this, SIGNAL(send_daily2Eventdialog(QString)), eventdialog, SLOT(get_daily2Eventdialog(QString)));
+    connect(this, SIGNAL(send_start2Eventdialog(void)), eventdialog, SLOT(get_dtart2Eventdialog(void)));
 }
 
 MainWindow::~MainWindow()
@@ -70,7 +77,7 @@ void MainWindow::openFile()
         while(!stream.atEnd())
         {
             line = stream.readLine(); // 一行一行读取，不包括“/n”的一行文本
-            //qDebug()<< line.toUtf8();
+
             int rowNum = ui->tableWidget->rowCount();
             ui->tableWidget->setRowCount(rowNum+1);
 
@@ -94,7 +101,7 @@ void MainWindow::findInTableWidget(QString string)
 {
     qDebug() << "findInTableWidget:" << string;
 
-    if(ui->tableWidget->findItems(string, Qt::MatchContains).isEmpty())
+    if(ui->tableWidget->findItems(string, Qt::MatchExactly).isEmpty())
     {
         qDebug() << "failed to find:" << string;
     }
@@ -114,7 +121,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 {
     if(event->modifiers() == Qt::ControlModifier && event->key() == Qt::Key_F)
     {
-        qDebug() << "get keyPressEvent ctrl+f";
+        qDebug() << "get keyPressEvent Ctrl+F";
 
         FindDialog find(this);
         connect(&find, SIGNAL(findString(QString)), this, SLOT(findInTableWidget(QString)));
@@ -126,11 +133,9 @@ void MainWindow::uiShowConnectionStatus(bool connected)
 {
     ui->pushButton_Connect->setEnabled(!connected);
     ui->lineEdit_Server->setEnabled(!connected);
-    ui->lineEdit_Mysql->setEnabled(!connected);
     ui->pushButton_Disconnect->setEnabled(connected);
-    ui->pushButton_Login->setEnabled(connected);
-    ui->pushButton_GetImeiList->setEnabled(false);
-    ui->pushButton_Get_Local_imeiList->setEnabled(false);
+    ui->pushButton_GetImeiData->setEnabled(false);
+    ui->pushButton_Get_Local_imeiData->setEnabled(false);
     ui->pushButton_UpdataImeiData->setEnabled(false);
     ui->tableWidget->setEnabled(connected);
 
@@ -143,11 +148,6 @@ void MainWindow::uiShowConnectionStatus(bool connected)
 
 void MainWindow::on_pushButton_Connect_clicked()
 {
-    tcpSocket = new QTcpSocket(this);
-    connect(tcpSocket,SIGNAL(connected()),this,SLOT(slotConnected()));
-    connect(tcpSocket,SIGNAL(disconnected()),this,SLOT(slotDisconnected()));
-    connect(tcpSocket,SIGNAL(readyRead()),this,SLOT(slotDataReceived()));
-
     QString strServer = ui->lineEdit_Server->text();
     QRegExp regServer("(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}):(\\d{1,5})");
     int iServerPos = regServer.indexIn(strServer);
@@ -163,39 +163,8 @@ void MainWindow::on_pushButton_Connect_clicked()
         tcpSocket->connectToHost(QString("120.25.157.233"), 9898);//default server
     }
 
-    QString strMysql = ui->lineEdit_Mysql->text();
-    QRegExp regMysql("(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}):(\\d{1,5})");
-    int iMysqlPos = regMysql.indexIn(strMysql);
-    if(iMysqlPos >= 0)
-    {
-        QString strMysqlHost = regMysql.cap(1);
-        int iMysqlPort = regMysql.cap(2).toInt(0, 10);
-        qDebug() << "connect to mysql" << strMysqlHost << iMysqlPort;
-
-        data_base.setHostName(strMysqlHost);
-        data_base.setPort(iMysqlPort);
-    }
-    else
-    {
-        qDebug() << "connect to gDefaultMysql:" << gDefaultMysql;
-        ui->lineEdit_Server->setText(gDefaultMysql);
-
-        data_base.setHostName(QString("120.25.157.233"));
-        data_base.setPort(3306);
-    }
-
-    data_base.setDatabaseName("gps");
-    data_base.setUserName("admin");
-    data_base.setPassword("xiaoan2016");
-    qDebug() << "want to open mysql";
-    if(!data_base.open())
-    {
-        qDebug() << "connect to mysql failed" << data_base.lastError();
-    }
-    else
-    {
-        qDebug() << "connect to mysql success";
-    }
+    QByteArray array_header = QByteArray::fromHex("aa6601110000"); //set seq at 0xff for updata imei data loop
+    tcpSocket->write(array_header);
 
     return;
 }
@@ -209,59 +178,21 @@ void MainWindow::on_pushButton_Disconnect_clicked()
     return;
 }
 
-void MainWindow::on_pushButton_Login_clicked()
+void MainWindow::on_pushButton_Get_Local_imeiData_clicked()
 {
-    QByteArray array_header = QByteArray::fromHex("aa6601110000"); //set seq at 0xff for updata imei data loop
-    tcpSocket->write(array_header);
-}
-void MainWindow::on_pushButton_Get_Local_imeiList_clicked()
-{
-    ui->pushButton_GetImeiList->setEnabled(false);
+    ui->pushButton_GetImeiData->setEnabled(false);
     qDebug()<<"get local imei list";
     openFile();
     return;
 }
 
-void MainWindow::on_pushButton_GetImeiList_clicked()
+void MainWindow::on_pushButton_GetImeiData_clicked()
 {
-    ui->pushButton_Get_Local_imeiList->setEnabled(false);
-    sql_query = QSqlQuery(data_base);
-    sql_query.prepare(QString("select imei from object"));
-    if(!sql_query.exec())
-    {
-        qDebug() << sql_query.lastError();
-    }
-    else
-    {
-        int iQuerySize = sql_query.size();
-        qDebug() << "select imei from object query success" << iQuerySize;
-        if(iQuerySize <= 0)
-        {
-            return;
-        }
-        else
-        {
-            ui->tableWidget->setRowCount(0);//clear the table
-            ui->label_InProcess_GetImeiList->setText("Geting");
-        }
-
-        while(sql_query.next())
-        {
-            QString imeiString = sql_query.value("imei").toString();
-
-            int rowNum = ui->tableWidget->rowCount();
-            ui->tableWidget->setRowCount(rowNum+1);
-
-            ui->tableWidget->setItem(rowNum, 0, new QTableWidgetItem(imeiString));
-            ui->tableWidget->setItem(rowNum, 1, new QTableWidgetItem("Details"));
-            ui->tableWidget->item(rowNum, 0)->setForeground(Qt::blue);
-            ui->tableWidget->item(rowNum, 1)->setForeground(Qt::blue);
-        }
-        ui->tableWidget->resizeColumnsToContents();
-        ui->label_InProcess_GetImeiList->setText("");
-    }
-
-    return;
+    ui->pushButton_Get_Local_imeiData->setEnabled(false);
+    ui->tableWidget->setRowCount(0);//clear the table
+    QByteArray array_header;
+    array_header = QByteArray::fromHex("aa660ccc0000");
+    tcpSocket->write(array_header);
 }
 
 void MainWindow::slotConnected()
@@ -298,10 +229,9 @@ int MainWindow::manager_login(const void *msg)
 
     qDebug("get manager login response");
 
-    ui->pushButton_Login->setEnabled(false);
-    ui->pushButton_GetImeiList->setEnabled(true);
+    ui->pushButton_GetImeiData->setEnabled(true);
     ui->pushButton_UpdataImeiData->setEnabled(true);
-    ui->pushButton_Get_Local_imeiList->setEnabled(true);
+    ui->pushButton_Get_Local_imeiData->setEnabled(true);
     return 0;
 }
 
@@ -319,7 +249,7 @@ void MainWindow::uiShowImeiData(const char *imei, char online_offline, int versi
     {
         qDebug() << "find items" << imei;
 
-        int rowNum = ui->tableWidget->findItems(imei, Qt::MatchExactly).first()->row();
+        int rowNum = ui->tableWidget->findItems(imei, Qt::MatchEndsWith).first()->row();
 
         if(online_offline == 1)
         {
@@ -560,11 +490,82 @@ int MainWindow::manager_getAT(const void *msg)
             break;
     }
     return 0;
+};
+int MainWindow::manager_getOneDaily(const void *msg)
+{
+    const MANAGER_MSG_IMEI_DAILY_RSP *rsp = (const MANAGER_MSG_IMEI_DAILY_RSP *)msg;
+    if(ntohs(rsp->header.length) < sizeof(MANAGER_MSG_IMEI_DAILY_RSP) - MANAGER_MSG_HEADER_LEN)
+    {
+        qDebug("getNULL message length not enough");
+        return -1;
+    }
+    char data[128] = {0};
+    memcpy(data, rsp->data, 128);
+
+    send_daily2Eventdialog(data);
+
+    return 0;
 }
+
+int MainWindow::manager_getImeiData(const void *msg)
+{
+    const MANAGER_MSG_IMEI_DATA_RSP *rsp = (const MANAGER_MSG_IMEI_DATA_RSP *)msg;
+    if(ntohs(rsp->header.length) < sizeof(MANAGER_MSG_IMEI_DATA_RSP) - MANAGER_MSG_HEADER_LEN)
+    {
+        qDebug("getNULL message length not enough");
+        return -1;
+    }
+    qDebug("get data(%s)", rsp->imei_data.IMEI);
+
+    int rowNum = ui->tableWidget->rowCount();
+    ui->tableWidget->setRowCount(rowNum+1);
+
+    char imei[16] = {0};
+    memcpy(imei, rsp->imei_data.IMEI, 15);
+    ui->tableWidget->setItem(rowNum, 0, new QTableWidgetItem(imei));
+    ui->tableWidget->item(rowNum, 0)->setForeground(Qt::blue);
+
+    ui->tableWidget->setItem(rowNum, 1, new QTableWidgetItem("Details"));
+    ui->tableWidget->item(rowNum, 1)->setForeground(Qt::blue);
+
+    if(rsp->imei_data.online_offline == 1)
+    {
+        ui->tableWidget->setItem(rowNum, 2, new QTableWidgetItem("online"));
+        ui->tableWidget->item(rowNum, 2)->setForeground(Qt::green);
+    }
+    else if(rsp->imei_data.online_offline == 2)
+    {
+        ui->tableWidget->setItem(rowNum, 2, new QTableWidgetItem("offline"));
+        ui->tableWidget->item(rowNum, 2)->setForeground(Qt::red);
+    }
+
+    int version = ntohl(rsp->imei_data.version);
+    int version_a = version / 65536;
+    int version_b = (version % 65536) / 256;
+    int version_c = version % 256;
+    ui->tableWidget->setItem(rowNum, 3, new QTableWidgetItem(QString("%1.%2.%3").arg(version_a).arg(version_b).arg(version_c)));
+
+    int timestamp = ntohl(rsp->imei_data.gps.timestamp);
+    QDateTime dataTime = QDateTime::fromTime_t(timestamp);
+    QString dataTimeString = dataTime.toString("yyyy.MM.dd HH:mm:ss");
+    ui->tableWidget->setItem(rowNum, 4, new QTableWidgetItem(dataTimeString));
+
+    ui->tableWidget->setItem(rowNum, 5, new QTableWidgetItem(QString::number(rsp->imei_data.gps.longitude, 'f', 6)));
+    ui->tableWidget->setItem(rowNum, 6, new QTableWidgetItem(QString::number(rsp->imei_data.gps.latitude, 'f', 6)));
+    ui->tableWidget->setItem(rowNum, 7, new QTableWidgetItem(QString("%1").arg((int)rsp->imei_data.gps.speed)));
+
+    short course = ntohs(rsp->imei_data.gps.course);
+    ui->tableWidget->setItem(rowNum, 8, new QTableWidgetItem(QString("%1").arg(course)));
+
+    ui->tableWidget->setItem(rowNum, 9, new QTableWidgetItem(QString("0")));
+    ui->tableWidget->resizeColumnsToContents();
+
+    return 0;
+}
+
 int MainWindow::handle_one_msg(const void *m)
 {
     const MANAGER_MSG_HEADER *msg = (const MANAGER_MSG_HEADER *)m;
-
     switch(msg->cmd)
     {
         case MANAGER_CMD_LOGIN:
@@ -594,23 +595,31 @@ int MainWindow::handle_one_msg(const void *m)
         case MANAGER_CMD_GET_AT:
             return manager_getAT(msg);
 
+        case MANAGER_CMD_GET_IMEIDATA:
+            return manager_getImeiData(msg);
+
+        case MANAGER_CMD_GET_IMEIDAILY:
+            return manager_getOneDaily(msg);
+
+
         default:
             return -1;
     }
 }
 
-int MainWindow::handle_manager_msg(const char *m, size_t msgLen)
-{
-    const MANAGER_MSG_HEADER *msg = (const MANAGER_MSG_HEADER *)m;
+static QByteArray datagram;
 
-    if(msgLen < MANAGER_MSG_HEADER_LEN)
+int MainWindow::handle_manager_msg(void)
+{
+    MANAGER_MSG_HEADER *msg = (MANAGER_MSG_HEADER *)datagram.data();
+
+    if(datagram.length() < MANAGER_MSG_HEADER_LEN)
     {
-        qDebug("message length not enough: %zu(at least(%zu))", msgLen, MANAGER_MSG_HEADER_LEN);
+        qDebug("message length not enough: %zu(at least(%zu))", datagram.length(), MANAGER_MSG_HEADER_LEN);
 
         return -1;
     }
-    size_t leftLen = msgLen;
-
+    size_t leftLen = datagram.length();
     while(leftLen >= ntohs(msg->length) + MANAGER_MSG_HEADER_LEN)
     {
         const unsigned char *status = (const unsigned char *)(&(msg->signature));
@@ -624,21 +633,19 @@ int MainWindow::handle_manager_msg(const char *m, size_t msgLen)
         }
 
         leftLen = leftLen - MANAGER_MSG_HEADER_LEN - ntohs(msg->length);
-        msg = (const MANAGER_MSG_HEADER *)(m + msgLen - leftLen);
+        datagram.remove(0,MANAGER_MSG_HEADER_LEN + ntohs(msg->length));
+        msg = (MANAGER_MSG_HEADER *)datagram.data();
     }
     return 0;
 }
 
 void MainWindow::slotDataReceived()
 {
-    qDebug() << tcpSocket->bytesAvailable();
+
     while(tcpSocket->bytesAvailable() > 0)
     {
-        QByteArray datagram;
-        datagram.resize(tcpSocket->bytesAvailable());
-        tcpSocket->read(datagram.data(), datagram.size());
-
-        handle_manager_msg(datagram.data(), datagram.length());
+        datagram.append(tcpSocket->readAll());
+        handle_manager_msg();
     }
 
     return;
@@ -715,8 +722,6 @@ void MainWindow::slotTableMenuAction(QAction *action)
         QString text = QInputDialog::getText(NULL,"AT_CMD","AT Command", QLineEdit::Normal,NULL,&isOK);
         if(isOK)
         {
-            //print and read
-            //QMessageBox::information(NULL,"Information","Your　comment　is:　<b>"+text+"</b>",QMessageBox::Yes|QMessageBox::No,QMessageBox::Yes);
             array_header = QByteArray::fromHex("aa660bbb000f");
             tcpSocket->write(array_header + array_imei + text.toUtf8()+"\r");
             return;
@@ -758,8 +763,12 @@ void MainWindow::on_tableWidget_cellDoubleClicked(int row, int column)
 
     if(column == 1) //get event
     {
-        EventDialog event(this, gCurrentImeiString, data_base);
-        event.exec();
+        send_start2Eventdialog();
+        QByteArray array_header = QByteArray::fromHex("aa660ddd000f"); //set seq at 0xff for updata imei data loop
+        QByteArray array_imei = QByteArray::fromHex(gCurrentImeiString.toLatin1().toHex());
+        tcpSocket->write(array_header + array_imei);
+
+        eventdialog->exec();
     }
 }
 

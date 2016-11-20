@@ -25,3 +25,5 @@ HEADERS  += mainwindow.h \
 FORMS    += mainwindow.ui \
     eventdialog.ui \
     finddialog.ui
+UI_DIR= ./
+

@@ -33,9 +33,8 @@ public:
 private slots:
     void on_pushButton_Connect_clicked();
     void on_pushButton_Disconnect_clicked();
-    void on_pushButton_Login_clicked();
-    void on_pushButton_GetImeiList_clicked();
-    void on_pushButton_Get_Local_imeiList_clicked();
+    void on_pushButton_GetImeiData_clicked();
+    void on_pushButton_Get_Local_imeiData_clicked();
     void on_pushButton_UpdataImeiData_clicked();
     void on_tableWidget_cellDoubleClicked(int row, int column);
 
@@ -54,14 +53,13 @@ private:
     Ui::MainWindow *ui;
     QTcpSocket *tcpSocket;
     QSqlDatabase data_base;
-    QSqlQuery sql_query;
     QMenu *pTableMenu;
     QAction *openAction;
 
 
     void keyPressEvent(QKeyEvent *event);
 
-    int handle_manager_msg(const char *m, size_t msgLen);
+    int handle_manager_msg(void);
     int handle_one_msg(const void *m);
     int manager_login(const void *msg);
     int manager_imeiData(const void *msg);
@@ -72,9 +70,15 @@ private:
     int manager_getSetting(const void *msg);
     int manager_getBattery(const void *msg);
     int manager_getAT(const void *msg);
+    int manager_getImeiData(const void *msg);
+    int manager_getOneDaily(const void *msg);
 
     void uiShowConnectionStatus(bool connected);
     void uiShowImeiData(const char *imei, char online_offline, int version, int timestamp, float longitude, float latitude, char speed, short course);
+
+signals:
+    void send_daily2Eventdialog(QString data);
+    void send_start2Eventdialog(void);
 };
 
 #endif // MAINWINDOW_H

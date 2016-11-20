@@ -9,14 +9,15 @@
 namespace Ui {
 class EventDialog;
 }
-
+class MainWindow;
 class EventDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit EventDialog(QWidget *parent, QString imeiString, QSqlDatabase database);
+    explicit EventDialog(QWidget *parent);
     ~EventDialog();
+    MainWindow *pMainWindow;
 
 private slots:
     void slotHeaderClicked(int);
@@ -27,9 +28,12 @@ private slots:
 
 private:
     Ui::EventDialog *ui;
-    QSqlQuery sql_query;
 
-    void displayEventsWithPagesNow(void);
+    void event_Display(void);
+
+public slots:
+    void get_daily2Eventdialog(QString);
+    void get_dtart2Eventdialog(void);
 };
 
 #endif // EVENTDIALOG_H
