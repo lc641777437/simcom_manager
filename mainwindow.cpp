@@ -22,13 +22,14 @@
 #define STR_UPGRADE     "Upgrade"
 #define STR_CMD_AT      "cmd AT"
 
-
 QString gDefaultServer = QString("121.42.38.93:9898");//调试服务器
 //QString gDefaultServer = QString("120.25.157.233:9898");//正式服务器
 
-QString gCurrentImeiString;
 
 EventDialog *eventdialog = NULL;
+
+QString gCurrentImeiString;
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -172,7 +173,6 @@ void MainWindow::on_pushButton_Connect_clicked()
 void MainWindow::on_pushButton_Disconnect_clicked()
 {
     tcpSocket->disconnectFromHost();
-    data_base.close();
 
     ui->tableWidget->setRowCount(0); //clear the table
     return;

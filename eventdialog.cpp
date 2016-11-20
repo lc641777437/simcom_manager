@@ -5,15 +5,6 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 
-#define EVENT_NUM_IN_ONE_PAGE 60
-
-static QString gImeiString;
-static QSqlDatabase gDatabase;
-
-static int gQuerySize = 0;
-static int gPagesTotal = 0;
-static int gPagesNow = 0;
-
 EventDialog::EventDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::EventDialog)
@@ -27,10 +18,6 @@ EventDialog::EventDialog(QWidget *parent) :
 EventDialog::~EventDialog()
 {
     delete ui;
-}
-
-void EventDialog::event_Display(void)
-{
 }
 
 void EventDialog::slotHeaderClicked(int column)
@@ -72,6 +59,5 @@ void EventDialog::get_daily2Eventdialog(QString data)
 }
 void EventDialog::get_dtart2Eventdialog(void)
 {
-    ui->tableWidget->clearContents();
     ui->tableWidget->setRowCount(0);
 }

@@ -29,8 +29,6 @@ private slots:
 private:
     Ui::EventDialog *ui;
 
-    void event_Display(void);
-
 public slots:
     void get_daily2Eventdialog(QString);
     void get_dtart2Eventdialog(void);

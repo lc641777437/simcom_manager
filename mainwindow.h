@@ -3,9 +3,6 @@
 
 #include <QMainWindow>
 #include <QTcpSocket>
-#include <QSqlDatabase>
-#include <QSqlQuery>
-#include <QSqlError>
 #include <QKeyEvent>
 
 #define htonl(l) ((((l >> 24) & 0x000000ff)) | \
@@ -52,7 +49,6 @@ private slots:
 private:
     Ui::MainWindow *ui;
     QTcpSocket *tcpSocket;
-    QSqlDatabase data_base;
     QMenu *pTableMenu;
     QAction *openAction;
 
