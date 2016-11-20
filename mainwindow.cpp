@@ -21,6 +21,8 @@
 #define STR_REBOOT      "Reboot"
 #define STR_UPGRADE     "Upgrade"
 #define STR_CMD_AT      "cmd AT"
+#define STR_SET_SERVER  "Set device server"
+
 
 QString gDefaultServer = QString("121.42.38.93:9898");//调试服务器
 //QString gDefaultServer = QString("120.25.157.233:9898");//正式服务器
@@ -685,6 +687,27 @@ void MainWindow::slotTableMenuAction(QAction *action)
     {
         array_header = QByteArray::fromHex("aa660888000f");
     }
+    else if(action->text() == STR_SET_SERVER)
+    {
+        bool isOK;
+        QString strServer = QInputDialog::getText(NULL,"Set server IP","server:", QLineEdit::Normal,"121.42.38.93:9880",&isOK);
+        if(isOK)
+        {
+            QRegExp regServer("(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}):(\\d{1,5})");
+            int iServerPos = regServer.indexIn(strServer);
+            if(iServerPos >= 0)
+            {
+                array_header = QByteArray::fromHex("aa660eee000f");
+                tcpSocket->write(array_header + array_imei + strServer.toUtf8()+"\r");
+            }
+            else
+            {
+                QMessageBox::question(this, "warning", QString("Please input one right server IP!"), QMessageBox::Yes | QMessageBox::Default, QMessageBox::No | QMessageBox::Escape );
+
+            }
+        }
+        return;
+    }
     else if(action->text() == STR_REBOOT)
     {
         switch(QMessageBox::question(this, "warning", QString("Are you sure to reboot the device(%1)").arg(gCurrentImeiString), QMessageBox::Yes | QMessageBox::Default, QMessageBox::No | QMessageBox::Escape ))
@@ -718,7 +741,6 @@ void MainWindow::slotTableMenuAction(QAction *action)
     else if(action->text() == STR_CMD_AT)
     {
         bool isOK;
-        QByteArray ba;
         QString text = QInputDialog::getText(NULL,"AT_CMD","AT Command", QLineEdit::Normal,NULL,&isOK);
         if(isOK)
         {
@@ -753,6 +775,7 @@ void MainWindow::on_tableWidget_cellDoubleClicked(int row, int column)
         pTableMenu->addAction(STR_GET_BATTERY);
         pTableMenu->addAction(STR_CMD_AT);
         pTableMenu->addSeparator();
+        pTableMenu->addAction(STR_SET_SERVER);
         pTableMenu->addAction(STR_REBOOT);
         pTableMenu->addAction(STR_UPGRADE);
 

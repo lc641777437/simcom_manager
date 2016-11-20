@@ -26,7 +26,7 @@ enum
     MANAGER_CMD_GET_AT          = 11,
     MANAGER_CMD_GET_IMEIDATA    = 12,
     MANAGER_CMD_GET_IMEIDAILY   = 13,
-
+    MANAGER_CMD_SET_SERVER      = 14,
 };
 
 #pragma pack(push, 1)
@@ -204,6 +204,21 @@ typedef struct
     MANAGER_MSG_HEADER header;
     char IMEI[MANAGER_MAX_IMEI_LENGTH];
 }__attribute__((__packed__)) MANAGER_MSG_UPGRADE_REQ;
+
+/*
+ * server message structure
+ */
+typedef struct
+{
+    MANAGER_MSG_HEADER header;
+    char IMEI[MANAGER_MAX_IMEI_LENGTH];
+    char server[];
+}__attribute__((__packed__)) MANAGER_MSG_SETSERVER_REQ;
+
+typedef struct
+{
+    MANAGER_MSG_HEADER header;
+}__attribute__((__packed__)) MANAGER_MSG_SETSERVER_RSP;
 
 #pragma pack(pop)
 
