@@ -492,7 +492,8 @@ int MainWindow::manager_getAT(const void *msg)
             break;
     }
     return 0;
-};
+}
+
 int MainWindow::manager_getOneDaily(const void *msg)
 {
     const MANAGER_MSG_IMEI_DAILY_RSP *rsp = (const MANAGER_MSG_IMEI_DAILY_RSP *)msg;
@@ -506,6 +507,12 @@ int MainWindow::manager_getOneDaily(const void *msg)
 
     send_daily2Eventdialog(data);
 
+    return 0;
+}
+
+int MainWindow::manager_setServerRsp(const void *msg)
+{
+    QMessageBox::information(this, "Information", QString("Set server OK, reboot it!"), QMessageBox::Ok | QMessageBox::Default, QMessageBox::Cancel | QMessageBox::Escape );
     return 0;
 }
 
@@ -602,6 +609,10 @@ int MainWindow::handle_one_msg(const void *m)
 
         case MANAGER_CMD_GET_IMEIDAILY:
             return manager_getOneDaily(msg);
+
+        case MANAGER_CMD_SET_SERVER:
+            return manager_setServerRsp(msg);
+
 
 
         default:
@@ -702,7 +713,7 @@ void MainWindow::slotTableMenuAction(QAction *action)
             }
             else
             {
-                QMessageBox::question(this, "warning", QString("Please input one right server IP!"), QMessageBox::Yes | QMessageBox::Default, QMessageBox::No | QMessageBox::Escape );
+                QMessageBox::information(this, "Warning", QString("Please input one right server IP!"), QMessageBox::Yes | QMessageBox::Default, QMessageBox::No | QMessageBox::Escape );
 
             }
         }
