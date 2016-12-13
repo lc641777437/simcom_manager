@@ -75,6 +75,7 @@ private:
 
     void uiShowConnectionStatus(bool connected);
     void uiShowImeiData(const char *imei, char online_offline, int version, int timestamp, float longitude, float latitude, char speed, short course);
+    QByteArray httpsOperarte(const QString &url);
 };
 
 #endif // MAINWINDOW_H

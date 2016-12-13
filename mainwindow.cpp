@@ -10,7 +10,14 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QSslConfiguration>
+#include <QJsonDocument>
+#include <QJsonObject>
 
+#define STR_GET_ADDRESS "Get address name"
 #define STR_UPDATA_IMEI "Updata the specify imei data"
 #define STR_GET_LOG     "Get log"
 #define STR_GET_433     "Get 433"
@@ -28,6 +35,10 @@
 QString gDefaultServer = QString("120.25.157.233:9898");//正式服务器
 QString gDefaultMysql = QString("120.25.157.233:3306");
 QString gCurrentImeiString;
+int gCurrentrow;
+QString gCurrentlat;
+QString gCurrentlng;
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -726,18 +737,54 @@ void MainWindow::slotTableMenuAction(QAction *action)
             return;
         }
     }
+    else if(action->text() == STR_GET_ADDRESS)
+    {
+        QString url = "http://api.map.baidu.com/geocoder/v2/?location="+gCurrentlng+","+gCurrentlat+"&output=json&pois=1&ak=mKIsIqfzGsG8IUnGqBtfA3B4RjDmHGEp";
+        QByteArray data = httpsOperarte(url);
+        if(data.isNull())return;
+        QJsonDocument jsonDocument = QJsonDocument::fromJson(data);
+        if( jsonDocument.isNull() )
+        {
+            qDebug()<< "please check the string "<< data;
+            return;
+        }
 
+        QJsonObject jsonObject = jsonDocument.object();
+        QJsonValue result_value = jsonObject.take(QString("result"));
+        if(result_value.isNull())
+        {
+            return;
+        }
+        QJsonObject address = result_value.toObject();
+        if(address.isEmpty())
+        {
+            return;
+        }
+        QJsonValue address_string = address.take(QString("formatted_address"));
+        if(address_string.isNull())
+        {
+            return;
+        }
+        ui->tableWidget->setItem(gCurrentrow,9,new QTableWidgetItem(address_string.toString()));
+        ui->tableWidget->resizeColumnsToContents();
+
+        return;
+    }
     tcpSocket->write(array_header + array_imei);
 }
 
 void MainWindow::on_tableWidget_cellDoubleClicked(int row, int column)
 {
     gCurrentImeiString = ui->tableWidget->item(row, 0)->text();
+    gCurrentlat = ui->tableWidget->item(row, 5)->text();
+    gCurrentlng = ui->tableWidget->item(row, 6)->text();
+    gCurrentrow = row;
     qDebug() << "on_tableWidget_cellDoubleClicked:" << row << column << gCurrentImeiString;
 
     if(column == 0) //get imei data
     {
         pTableMenu = new QMenu(ui->tableWidget);
+        pTableMenu->addAction(STR_GET_ADDRESS);
         pTableMenu->addAction(STR_UPDATA_IMEI);
         pTableMenu->addSeparator();
         pTableMenu->addAction(STR_GET_LOG);
@@ -782,4 +829,48 @@ void MainWindow::on_pushButton_UpdataImeiData_clicked()
         UpdataImeiDataWithRow(0);
         ui->label_InProcess_UpdataImeiData->setText("Updating");
     }
+}
+
+QByteArray MainWindow::httpsOperarte(const QString &url)
+{
+    QNetworkAccessManager m_NtwkAccManager;
+    int TIMEOUT = (2 * 1000);
+    QByteArray _result;
+    QNetworkRequest _request;
+    _request.setUrl(QUrl(url));
+    QSslConfiguration _sslCon = _request.sslConfiguration();
+    _sslCon.setPeerVerifyMode(QSslSocket::VerifyNone);
+    _request.setSslConfiguration(_sslCon);
+    _request.setHeader(QNetworkRequest::ContentTypeHeader, QString("application/json"));
+    QNetworkReply *_reply;
+    _reply = m_NtwkAccManager.get(_request);
+    _reply->ignoreSslErrors();
+
+    QTime _t;
+    _t.start();
+
+    bool _timeout = false;
+
+    while (!_reply->isFinished())
+    {
+        QApplication::processEvents();
+        if (_t.elapsed() >= TIMEOUT)
+        {
+            _timeout = true;
+            break;
+        }
+    }
+
+    if (!_timeout && _reply->error() == QNetworkReply::NoError)
+    {
+        _reply->deleteLater();
+        _result = _reply->readAll();
+    }
+    else
+    {
+        _reply->deleteLater();
+        return NULL;
+    }
+
+    return _result;
 }
