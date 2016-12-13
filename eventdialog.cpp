@@ -4,6 +4,7 @@
 #include <QDebug>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QJsonArray>
 
 EventDialog::EventDialog(QWidget *parent) :
     QDialog(parent),
@@ -51,11 +52,25 @@ void EventDialog::get_daily2Eventdialog(QString data)
     }
 
     QJsonObject jsonObject = jsonDocument.object();
-    int rowNum = ui->tableWidget->rowCount();
-    ui->tableWidget->setRowCount(rowNum+1);
-    ui->tableWidget->setItem(rowNum, 0, new QTableWidgetItem(jsonObject.take("time").toString()));
-    ui->tableWidget->setItem(rowNum, 1, new QTableWidgetItem(jsonObject.take("event").toString()));
-    ui->tableWidget->resizeColumnsToContents();
+    if(jsonObject.contains(QString("log")))
+    {
+        int rowNum = 0;
+        QJsonValue array_value = jsonObject.take(QString("log"));
+        QJsonArray array = array_value.toArray();
+        for(int i = 0;i < array.size();i++)
+        {
+            QJsonValue obj_value = array.at(i);
+            if(obj_value.isObject())
+            {
+                QJsonObject obj = obj_value.toObject();
+                ui->tableWidget->setRowCount(rowNum + 1);
+                ui->tableWidget->setItem(rowNum, 0, new QTableWidgetItem(obj.take("time").toString()));
+                ui->tableWidget->setItem(rowNum, 1, new QTableWidgetItem(obj.take("event").toString()));
+                rowNum++;
+            }
+            ui->tableWidget->resizeColumnsToContents();
+        }
+    }
 }
 void EventDialog::get_dtart2Eventdialog(void)
 {

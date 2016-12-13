@@ -66,8 +66,8 @@ private:
     int manager_getSetting(const void *msg);
     int manager_getBattery(const void *msg);
     int manager_getAT(const void *msg);
-    int manager_getImeiData(const void *msg);
-    int manager_getOneDaily(const void *msg);
+    int manager_getData(const void *msg);
+    int manager_getDaily(const void *msg);
     int manager_setServerRsp(const void *msg);
 
     void uiShowConnectionStatus(bool connected);

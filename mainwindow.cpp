@@ -10,6 +10,10 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonArray>
+
 
 #define STR_UPDATA_IMEI "Updata the specify imei data"
 #define STR_GET_LOG     "Get log"
@@ -24,8 +28,8 @@
 #define STR_SET_SERVER  "Set device server"
 
 
-QString gDefaultServer = QString("121.42.38.93:9898");//调试服务器
-//QString gDefaultServer = QString("120.25.157.233:9898");//正式服务器
+//QString gDefaultServer = QString("121.42.38.93:9898");//调试服务器
+QString gDefaultServer = QString("120.25.157.233:9898");//正式服务器
 
 
 EventDialog *eventdialog = NULL;
@@ -104,7 +108,7 @@ void MainWindow::findInTableWidget(QString string)
 {
     qDebug() << "findInTableWidget:" << string;
 
-    if(ui->tableWidget->findItems(string, Qt::MatchExactly).isEmpty())
+    if(ui->tableWidget->findItems(string, Qt::MatchContains).isEmpty())
     {
         qDebug() << "failed to find:" << string;
     }
@@ -269,8 +273,8 @@ void MainWindow::uiShowImeiData(const char *imei, char online_offline, int versi
         int version_c = version % 256;
         ui->tableWidget->setItem(rowNum, 3, new QTableWidgetItem(QString("%1.%2.%3").arg(version_a).arg(version_b).arg(version_c)));
         ui->tableWidget->setItem(rowNum, 4, new QTableWidgetItem(dataTimeString));
-        ui->tableWidget->setItem(rowNum, 5, new QTableWidgetItem(QString::number(longitude, 'f', 6)));
-        ui->tableWidget->setItem(rowNum, 6, new QTableWidgetItem(QString::number(latitude, 'f', 6)));
+        ui->tableWidget->setItem(rowNum, 5, new QTableWidgetItem(QString::number(latitude, 'f', 6)));
+        ui->tableWidget->setItem(rowNum, 6, new QTableWidgetItem(QString::number(longitude, 'f', 6)));
         ui->tableWidget->setItem(rowNum, 7, new QTableWidgetItem(QString("%1").arg((int)speed)));
         ui->tableWidget->setItem(rowNum, 8, new QTableWidgetItem(QString("%1").arg(course)));
         ui->tableWidget->resizeColumnsToContents();
@@ -494,7 +498,7 @@ int MainWindow::manager_getAT(const void *msg)
     return 0;
 }
 
-int MainWindow::manager_getOneDaily(const void *msg)
+int MainWindow::manager_getDaily(const void *msg)
 {
     const MANAGER_MSG_IMEI_DAILY_RSP *rsp = (const MANAGER_MSG_IMEI_DAILY_RSP *)msg;
     if(ntohs(rsp->header.length) < sizeof(MANAGER_MSG_IMEI_DAILY_RSP) - MANAGER_MSG_HEADER_LEN)
@@ -502,9 +506,7 @@ int MainWindow::manager_getOneDaily(const void *msg)
         qDebug("getNULL message length not enough");
         return -1;
     }
-    char data[128] = {0};
-    memcpy(data, rsp->data, 128);
-
+    QString data = rsp->data;
     send_daily2Eventdialog(data);
 
     return 0;
@@ -516,59 +518,72 @@ int MainWindow::manager_setServerRsp(const void *msg)
     return 0;
 }
 
-int MainWindow::manager_getImeiData(const void *msg)
+int MainWindow::manager_getData(const void *msg)
 {
-    const MANAGER_MSG_IMEI_DATA_RSP *rsp = (const MANAGER_MSG_IMEI_DATA_RSP *)msg;
-    if(ntohs(rsp->header.length) < sizeof(MANAGER_MSG_IMEI_DATA_RSP) - MANAGER_MSG_HEADER_LEN)
+    const MANAGER_MSG_IMEI_DATA_ONCE_RSP *rsp = (const MANAGER_MSG_IMEI_DATA_ONCE_RSP *)msg;
+    if(ntohs(rsp->header.length) < sizeof(MANAGER_MSG_IMEI_DATA_ONCE_RSP) - MANAGER_MSG_HEADER_LEN)
     {
         qDebug("getNULL message length not enough");
         return -1;
     }
-    qDebug("get data(%s)", rsp->imei_data.IMEI);
-
-    int rowNum = ui->tableWidget->rowCount();
-    ui->tableWidget->setRowCount(rowNum+1);
-
-    char imei[16] = {0};
-    memcpy(imei, rsp->imei_data.IMEI, 15);
-    ui->tableWidget->setItem(rowNum, 0, new QTableWidgetItem(imei));
-    ui->tableWidget->item(rowNum, 0)->setForeground(Qt::blue);
-
-    ui->tableWidget->setItem(rowNum, 1, new QTableWidgetItem("Details"));
-    ui->tableWidget->item(rowNum, 1)->setForeground(Qt::blue);
-
-    if(rsp->imei_data.online_offline == 1)
+    QString data = rsp->data;
+    QJsonDocument jsonDocument = QJsonDocument::fromJson(data.toLocal8Bit().data());
+    if( jsonDocument.isNull() )
     {
-        ui->tableWidget->setItem(rowNum, 2, new QTableWidgetItem("online"));
-        ui->tableWidget->item(rowNum, 2)->setForeground(Qt::green);
-    }
-    else if(rsp->imei_data.online_offline == 2)
-    {
-        ui->tableWidget->setItem(rowNum, 2, new QTableWidgetItem("offline"));
-        ui->tableWidget->item(rowNum, 2)->setForeground(Qt::red);
+        qDebug()<< "please check the string "<< data.toLocal8Bit().data();
     }
 
-    int version = ntohl(rsp->imei_data.version);
-    int version_a = version / 65536;
-    int version_b = (version % 65536) / 256;
-    int version_c = version % 256;
-    ui->tableWidget->setItem(rowNum, 3, new QTableWidgetItem(QString("%1.%2.%3").arg(version_a).arg(version_b).arg(version_c)));
+    QJsonObject jsonObject = jsonDocument.object();
+    if(jsonObject.contains(QString("data")))
+    {
+        int rowNum = 0;
+        QJsonValue array_value = jsonObject.take(QString("data"));
+        QJsonArray array = array_value.toArray();
+        for(int i = 0;i < array.size();i++)
+        {
+            QJsonValue obj_value = array.at(i);
+            if(obj_value.isObject())
+            {
+                QJsonObject obj = obj_value.toObject();
+                ui->tableWidget->setRowCount(rowNum + 1);
 
-    int timestamp = ntohl(rsp->imei_data.gps.timestamp);
-    QDateTime dataTime = QDateTime::fromTime_t(timestamp);
-    QString dataTimeString = dataTime.toString("yyyy.MM.dd HH:mm:ss");
-    ui->tableWidget->setItem(rowNum, 4, new QTableWidgetItem(dataTimeString));
+                ui->tableWidget->setItem(rowNum, 0, new QTableWidgetItem(obj.take("imei").toString()));
+                ui->tableWidget->item(rowNum, 0)->setForeground(Qt::blue);
 
-    ui->tableWidget->setItem(rowNum, 5, new QTableWidgetItem(QString::number(rsp->imei_data.gps.longitude, 'f', 6)));
-    ui->tableWidget->setItem(rowNum, 6, new QTableWidgetItem(QString::number(rsp->imei_data.gps.latitude, 'f', 6)));
-    ui->tableWidget->setItem(rowNum, 7, new QTableWidgetItem(QString("%1").arg((int)rsp->imei_data.gps.speed)));
+                ui->tableWidget->setItem(rowNum, 1, new QTableWidgetItem("Details"));
+                ui->tableWidget->item(rowNum, 1)->setForeground(Qt::blue);
 
-    short course = ntohs(rsp->imei_data.gps.course);
-    ui->tableWidget->setItem(rowNum, 8, new QTableWidgetItem(QString("%1").arg(course)));
+                if(obj.take("staus").toInt() == 1)
+                {
+                    ui->tableWidget->setItem(rowNum, 2, new QTableWidgetItem("online"));
+                    ui->tableWidget->item(rowNum, 2)->setForeground(Qt::green);
+                }
+                else
+                {
+                    ui->tableWidget->setItem(rowNum, 2, new QTableWidgetItem("offline"));
+                    ui->tableWidget->item(rowNum, 2)->setForeground(Qt::red);
+                }
+                int version = obj.take("version").toInt();
+                int version_a = version / 65536;
+                int version_b = (version % 65536) / 256;
+                int version_c = version % 256;
+                ui->tableWidget->setItem(rowNum, 3, new QTableWidgetItem(QString("%1.%2.%3").arg(version_a).arg(version_b).arg(version_c)));
 
-    ui->tableWidget->setItem(rowNum, 9, new QTableWidgetItem(QString("0")));
-    ui->tableWidget->resizeColumnsToContents();
+                int timestamp = obj.take("timestamp").toInt();;
+                QDateTime dataTime = QDateTime::fromTime_t(timestamp);
+                QString dataTimeString = dataTime.toString("yyyy.MM.dd HH:mm:ss");
+                ui->tableWidget->setItem(rowNum, 4, new QTableWidgetItem(dataTimeString));
 
+                ui->tableWidget->setItem(rowNum, 5, new QTableWidgetItem(QString::number(obj.take("lat").toDouble(),'f',6)));
+                ui->tableWidget->setItem(rowNum, 6, new QTableWidgetItem(QString::number(obj.take("lon").toDouble(),'f',6)));
+                ui->tableWidget->setItem(rowNum, 7, new QTableWidgetItem(QString::number(obj.take("speed").toInt())));
+                ui->tableWidget->setItem(rowNum, 8, new QTableWidgetItem(QString::number(obj.take("course").toInt())));
+                ui->tableWidget->setItem(rowNum, 9, new QTableWidgetItem(QString::number(obj.take("voltage").toInt())));
+                ui->tableWidget->resizeColumnsToContents();
+                rowNum++;
+            }
+        }
+    }
     return 0;
 }
 
@@ -605,10 +620,10 @@ int MainWindow::handle_one_msg(const void *m)
             return manager_getAT(msg);
 
         case MANAGER_CMD_GET_IMEIDATA:
-            return manager_getImeiData(msg);
+            return manager_getData(msg);
 
         case MANAGER_CMD_GET_IMEIDAILY:
-            return manager_getOneDaily(msg);
+            return manager_getDaily(msg);
 
         case MANAGER_CMD_SET_SERVER:
             return manager_setServerRsp(msg);

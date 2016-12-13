@@ -82,6 +82,14 @@ typedef struct
     MANAGER_IMEI_DATA imei_data;
 }__attribute__((__packed__)) MANAGER_MSG_IMEI_DATA_RSP;
 
+typedef MANAGER_MSG_HEADER MANAGER_MSG_IMEI_DATA_ONCE_REQ;
+
+typedef struct
+{
+    MANAGER_MSG_HEADER header;
+    char data[];
+}__attribute__((__packed__)) MANAGER_MSG_IMEI_DATA_ONCE_RSP;
+
 /*
  * get daily message structure
  */

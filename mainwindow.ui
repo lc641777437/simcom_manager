@@ -53,7 +53,7 @@
     </column>
     <column>
      <property name="text">
-      <string>online_offline</string>
+      <string>staus</string>
      </property>
     </column>
     <column>
