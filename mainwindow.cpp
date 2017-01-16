@@ -24,9 +24,12 @@
 
 
 
-//QString gDefaultServer = QString("121.42.38.93:9898");//调试服务器
-QString gDefaultServer = QString("120.25.157.233:9898");//正式服务器
-QString gDefaultMysql = QString("120.25.157.233:3306");
+QString gDefaultServer = QString("118.89.104.130:9898");//调试服务器
+QString gDefaultMysql = QString("118.89.104.130:3306");//调试服务器
+
+//QString gDefaultServer = QString("120.25.157.233:9898");//正式服务器
+//QString gDefaultMysql = QString("120.25.157.233:3306");//正式服务器
+
 QString gCurrentImeiString;
 
 MainWindow::MainWindow(QWidget *parent) :
