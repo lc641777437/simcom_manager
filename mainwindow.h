@@ -75,7 +75,7 @@ private:
     int manager_setServerRsp(const void *msg);
 
     void uiShowConnectionStatus(bool connected);
-    void uiShowImeiData(const char *imei, char online_offline, int version, int timestamp, float longitude, float latitude, char speed, short course);
+    void uiShowImeiData(const char *imei, char online_offline, int version, int timestamp, float longitude, float latitude, char speed, short course, char voltage, char gsm);
 };
 
 #endif // MAINWINDOW_H

@@ -308,7 +308,7 @@ int MainWindow::manager_login(const void *msg)
     return 0;
 }
 
-void MainWindow::uiShowImeiData(const char *imei, char online_offline, int version, int timestamp, float longitude, float latitude, char speed, short course)
+void MainWindow::uiShowImeiData(const char *imei, char online_offline, int version, int timestamp, float longitude, float latitude, char speed, short course, char voltage, char gsm)
 {
     //qDebug("%d,%d,%f,%f,%d,%d",online_offline, timestamp, longitude, latitude, speed, course);
     QDateTime dataTime = QDateTime::fromTime_t(timestamp);
@@ -321,7 +321,6 @@ void MainWindow::uiShowImeiData(const char *imei, char online_offline, int versi
     else
     {
         qDebug() << "find items" << imei;
-
         int rowNum = ui->tableWidget->findItems(imei, Qt::MatchExactly).first()->row();
 
         if(online_offline == 1)
@@ -344,6 +343,8 @@ void MainWindow::uiShowImeiData(const char *imei, char online_offline, int versi
         ui->tableWidget->setItem(rowNum, 6, new QTableWidgetItem(QString::number(latitude, 'f', 6)));
         ui->tableWidget->setItem(rowNum, 7, new QTableWidgetItem(QString("%1").arg((int)speed)));
         ui->tableWidget->setItem(rowNum, 8, new QTableWidgetItem(QString("%1").arg(course)));
+        ui->tableWidget->setItem(rowNum, 9, new QTableWidgetItem(QString("%1").arg((int)voltage)));
+        ui->tableWidget->setItem(rowNum, 10, new QTableWidgetItem(QString("%1").arg((int)gsm)));
         ui->tableWidget->resizeColumnsToContents();
     }
 
@@ -370,8 +371,12 @@ int MainWindow::manager_imeiData(const void *msg)
     float latitude = rsp->imei_data.gps.latitude;
     char speed = rsp->imei_data.gps.speed;
     short course = rsp->imei_data.gps.course;
+    char voltage = rsp->imei_data.voltage;
+    char gsm = rsp->imei_data.gsm;
+    qDebug() << "voltage " <<voltage <<"gsm "<<gsm;
 
-    uiShowImeiData(imei, online_offline, version, timestamp, longitude, latitude, speed, course);
+
+    uiShowImeiData(imei, online_offline, version, timestamp, longitude, latitude, speed, course, voltage, gsm);
 
     //qDebug() << ntohs(rsp->header.signature) << (unsigned int)(rsp->header.cmd) << (unsigned int)(rsp->header.seq) << ntohs(rsp->header.length);
     if(rsp->header.seq == (char)0xff)

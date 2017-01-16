@@ -83,6 +83,16 @@
       <string>course</string>
      </property>
     </column>
+    <column>
+     <property name="text">
+      <string>voltage</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>gsm</string>
+     </property>
+    </column>
    </widget>
    <widget class="QPushButton" name="pushButton_Connect">
     <property name="geometry">
