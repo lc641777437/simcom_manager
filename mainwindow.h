@@ -72,6 +72,7 @@ private:
     int manager_getSetting(const void *msg);
     int manager_getBattery(const void *msg);
     int manager_getAT(const void *msg);
+    int manager_setServerRsp(const void *msg);
 
     void uiShowConnectionStatus(bool connected);
     void uiShowImeiData(const char *imei, char online_offline, int version, int timestamp, float longitude, float latitude, char speed, short course);

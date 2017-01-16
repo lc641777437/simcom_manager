@@ -21,14 +21,15 @@
 #define STR_REBOOT      "Reboot"
 #define STR_UPGRADE     "Upgrade"
 #define STR_CMD_AT      "cmd AT"
+#define STR_SET_SERVER  "Set device server"
 
-
-
+#if 1
 QString gDefaultServer = QString("118.89.104.130:9898");//调试服务器
 QString gDefaultMysql = QString("118.89.104.130:3306");//调试服务器
-
-//QString gDefaultServer = QString("120.25.157.233:9898");//正式服务器
-//QString gDefaultMysql = QString("120.25.157.233:3306");//正式服务器
+#else
+QString gDefaultServer = QString("120.25.157.233:9898");//正式服务器
+QString gDefaultMysql = QString("120.25.157.233:3306");//正式服务器
+#endif
 
 QString gCurrentImeiString;
 
@@ -73,7 +74,6 @@ void MainWindow::openFile()
         while(!stream.atEnd())
         {
             line = stream.readLine(); // 一行一行读取，不包括“/n”的一行文本
-            //qDebug()<< line.toUtf8();
             int rowNum = ui->tableWidget->rowCount();
             ui->tableWidget->setRowCount(rowNum+1);
 
@@ -564,6 +564,13 @@ int MainWindow::manager_getAT(const void *msg)
     }
     return 0;
 }
+
+int MainWindow::manager_setServerRsp(const void *msg)
+{
+    QMessageBox::information(this, "Information", QString("Set server OK, reboot it!"), QMessageBox::Ok | QMessageBox::Default, QMessageBox::Cancel | QMessageBox::Escape );
+    return 0;
+}
+
 int MainWindow::handle_one_msg(const void *m)
 {
     const MANAGER_MSG_HEADER *msg = (const MANAGER_MSG_HEADER *)m;
@@ -596,6 +603,9 @@ int MainWindow::handle_one_msg(const void *m)
 
         case MANAGER_CMD_GET_AT:
             return manager_getAT(msg);
+
+        case MANAGER_CMD_SET_SERVER:
+            return manager_setServerRsp(msg);
 
         default:
             return -1;
@@ -729,6 +739,28 @@ void MainWindow::slotTableMenuAction(QAction *action)
             return;
         }
     }
+    else if(action->text() == STR_SET_SERVER)
+    {
+        bool isOK;
+        QString strServer = QInputDialog::getText(NULL,"Set server IP","server:", QLineEdit::Normal,"121.42.38.93:9880",&isOK);
+        if(isOK)
+        {
+            QRegExp regServer("(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}):(\\d{1,5})");
+            int iServerPos = regServer.indexIn(strServer);
+            if(iServerPos >= 0)
+            {
+                array_header = QByteArray::fromHex("aa660eee000f");
+                tcpSocket->write(array_header + array_imei + strServer.toUtf8()+"\r");
+            }
+            else
+            {
+                QMessageBox::information(this, "Warning", QString("Please input one right server IP!"), QMessageBox::Yes | QMessageBox::Default, QMessageBox::No | QMessageBox::Escape );
+
+            }
+        }
+        return;
+    }
+
 
     tcpSocket->write(array_header + array_imei);
 }
@@ -750,6 +782,7 @@ void MainWindow::on_tableWidget_cellDoubleClicked(int row, int column)
         pTableMenu->addAction(STR_GET_SETTING);
         pTableMenu->addAction(STR_GET_BATTERY);
         pTableMenu->addAction(STR_CMD_AT);
+        pTableMenu->addAction(STR_SET_SERVER);
         pTableMenu->addSeparator();
         pTableMenu->addAction(STR_REBOOT);
         pTableMenu->addAction(STR_UPGRADE);

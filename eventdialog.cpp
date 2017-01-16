@@ -12,6 +12,18 @@ static int gQuerySize = 0;
 static int gPagesTotal = 0;
 static int gPagesNow = 0;
 
+enum{
+    DEVICE_LOGIN,
+    DEVICE_ALARM_MOVE,
+    DEVICE_ALARM_LOWPOWER,
+    DEVICE_ALARM_CUTPOWER,
+    DEVICE_DEFEND_ON,
+    DEVICE_DEFEND_OFF,
+    DEVICE_AUTOLOCK,
+    DEVICE_TIMEOUT,
+    DEVICE_LOGOUT
+};
+
 EventDialog::EventDialog(QWidget *parent, QString imeiString, QSqlDatabase database) :
     QDialog(parent),
     ui(new Ui::EventDialog)
@@ -103,7 +115,40 @@ void EventDialog::displayEventsWithPagesNow(void)
     while(sql_query.at() - startEventNum < EVENT_NUM_IN_ONE_PAGE)
     {
         QString timeString = sql_query.value("time").toString();
-        QString eventString = sql_query.value("event").toString();
+        QString eventString;
+        int eventInt = sql_query.value("event").toInt();
+        switch(eventInt)
+        {
+            case DEVICE_LOGIN:
+                eventString = "login";
+                break;
+            case DEVICE_ALARM_MOVE:
+                eventString = "movealarm";
+                break;
+            case DEVICE_ALARM_LOWPOWER:
+                eventString = "powerlow";
+                break;
+            case DEVICE_ALARM_CUTPOWER:
+                eventString = "powercut";
+                break;
+            case DEVICE_DEFEND_ON:
+                eventString = "defendon";
+                break;
+            case DEVICE_DEFEND_OFF:
+                eventString = "defendoff";
+                break;
+            case DEVICE_AUTOLOCK:
+                eventString = "autolock";
+                break;
+            case DEVICE_TIMEOUT:
+                eventString = "timeout";
+                break;
+            case DEVICE_LOGOUT:
+                eventString = "logout";
+                break;
+            default:
+                break;
+        }
 
         int rowNum = ui->tableWidget->rowCount();
         ui->tableWidget->setRowCount(rowNum+1);
